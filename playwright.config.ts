@@ -6,14 +6,20 @@ export default defineConfig({
     '**/*.spec.ts',
     '**/tests/**/*.spec.ts'
   ],
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  timeout: 60000,
   use: {
-    baseURL: 'http://localhost:3000',
+    headless: true,
+    baseURL: process.env.NODE_ENV === 'production' 
+      ? 'https://uiinterface-production.up.railway.app' 
+      : 'http://localhost:3000',
     trace: 'on-first-retry',
+    ignoreHTTPSErrors: true,
+    viewport: { width: 1280, height: 720 },
   },
   projects: [
     {
@@ -21,4 +27,4 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-}); 
+});
