@@ -18,6 +18,12 @@ interface TestSuite {
   tests: TestCase[];
 }
 
+// Function to sanitize strings and remove NULL bytes
+function sanitizeString(str: string): string {
+  if (!str) return '';
+  return str.replace(/\u0000/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+}
+
 export async function GET() {
   try {
     console.log('API Route: Starting to fetch tests');
@@ -26,17 +32,22 @@ export async function GET() {
 
     // Function to recursively find test files
     const findTestFiles = (dir: string): string[] => {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      const files = entries
-        .filter(file => !file.isDirectory() && (file.name.endsWith('.spec.ts') || file.name.endsWith('.test.ts')))
-        .map(file => path.join(dir, file.name));
-      
-      const folders = entries
-        .filter(entry => entry.isDirectory())
-        .map(entry => path.join(dir, entry.name));
-      
-      const subFiles = folders.flatMap(folder => findTestFiles(folder));
-      return [...files, ...subFiles];
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const files = entries
+          .filter(file => !file.isDirectory() && (file.name.endsWith('.spec.ts') || file.name.endsWith('.test.ts')))
+          .map(file => path.join(dir, file.name));
+        
+        const folders = entries
+          .filter(entry => entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules')
+          .map(entry => path.join(dir, entry.name));
+        
+        const subFiles = folders.flatMap(folder => findTestFiles(folder));
+        return [...files, ...subFiles];
+      } catch (error) {
+        console.error(`Error reading directory ${dir}:`, error);
+        return [];
+      }
     };
 
     const testFiles = findTestFiles(projectRoot);
@@ -44,28 +55,34 @@ export async function GET() {
 
     const testSuites: TestSuite[] = await Promise.all(testFiles.map(async (filePath) => {
       const relativePath = path.relative(projectRoot, filePath);
-      const content = fs.readFileSync(filePath, 'utf-8');
+      let content: string;
+      try {
+        content = fs.readFileSync(filePath, 'utf-8');
+      } catch (error) {
+        console.error(`Error reading file ${filePath}:`, error);
+        content = '';
+      }
       
-      // Parse individual tests from the file content
+      // Parse individual tests from the file content and sanitize the data
       const testMatches = Array.from(content.matchAll(/test\(['"](.*?)['"]/g));
       const tests = testMatches.map((match, testIndex) => ({
-        name: match[1],
-        file: relativePath,
+        name: sanitizeString(match[1] || ''),
+        file: sanitizeString(relativePath),
         index: testIndex,
         status: 'pending' as const,
         lastRun: undefined
       }));
 
       return {
-        name: path.basename(relativePath, path.extname(relativePath)),
-        file: relativePath,
+        name: sanitizeString(path.basename(relativePath, path.extname(relativePath))),
+        file: sanitizeString(relativePath),
         status: 'pending' as const,
         lastRun: undefined,
         tests
       };
     }));
 
-    console.log('Returning test suites:', testSuites);
+    console.log('Returning test suites:', JSON.stringify(testSuites, null, 2));
 
     return NextResponse.json(
       { testSuites },
@@ -86,4 +103,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-} 
+}
