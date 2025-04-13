@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { execPromise } from '../../lib/utils';
-import { sanitizeForPostgres, sanitizeObjectForPostgres } from '../../lib/sanitize';
 import * as fs from 'fs/promises';
 import path from 'path';
 
@@ -175,16 +174,12 @@ export async function POST(request: Request) {
         // Parse test results from output
         const { passed, results } = parseTestResults(output);
         
-        // Sanitize the output and results
-        const sanitizedOutput = sanitizeForPostgres(output);
-        const sanitizedResults = sanitizeObjectForPostgres(results);
-        
         return NextResponse.json({
           status: passed ? 'passed' : 'failed',
           message: passed ? 'Test executed successfully' : 'Test failed',
-          error: sanitizeForPostgres(stderr) || '',
-          output: sanitizedOutput,
-          testResults: sanitizedResults
+          error: stderr || '',
+          output: output,
+          testResults: results
         });
         
       } catch (execError: any) {

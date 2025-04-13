@@ -18,11 +18,16 @@ interface TestSuite {
   tests: TestCase[];
 }
 
-// Function to sanitize strings and remove NULL bytes
+// Function to safely handle string values and escape special characters
 function sanitizeString(str: string | null | undefined): string {
   if (str == null) return '';
-  // Remove all null bytes (\u0000)
-  return str.replace(/\u0000/g, '');
+  
+  // Convert to string and escape any special characters
+  const escaped = String(str)
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Remove control characters
+    .replace(/[\uFDD0-\uFDEF\uFFFE\uFFFF]/g, ''); // Remove non-characters
+    
+  return escaped;
 }
 
 export async function GET() {
