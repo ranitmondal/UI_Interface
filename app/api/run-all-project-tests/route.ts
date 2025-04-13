@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { execPromise } from '../../lib/utils';
+import { sanitizeForPostgres, sanitizeObjectForPostgres } from '../../lib/sanitize';
 import path from 'path';
 
 type TestStatus = 'pending' | 'running' | 'passed' | 'failed';
@@ -98,13 +99,17 @@ export async function POST() {
 
       // Parse test results
       const { passed, results } = parseTestResults(output);
+      
+      // Sanitize the output and results
+      const sanitizedOutput = sanitizeForPostgres(output);
+      const sanitizedResults = sanitizeObjectForPostgres(results);
 
       return NextResponse.json({
         status: passed ? 'passed' : 'failed',
         message: passed ? 'All tests executed successfully' : 'Some tests failed',
-        error: stderr || '',
-        output: output,
-        testResults: results
+        error: sanitizeForPostgres(stderr) || '',
+        output: sanitizedOutput,
+        testResults: sanitizedResults
       });
 
     } catch (execError: any) {
@@ -123,15 +128,15 @@ export async function POST() {
       return NextResponse.json({
         status: 'failed',
         message: 'Tests failed',
-        error: errorOutput || execError.message,
-        output: output || errorOutput,
-        testResults: results.length > 0 ? results : [{
+        error: sanitizeForPostgres(errorOutput || execError.message),
+        output: sanitizeForPostgres(output || errorOutput),
+        testResults: sanitizeObjectForPostgres(results.length > 0 ? results : [{
           file: '',
           testName: 'Test Execution',
           status: 'failed' as TestStatus,
           duration: '0ms',
-          error: errorOutput || execError.message
-        }]
+          error: sanitizeForPostgres(errorOutput || execError.message)
+        }])
       });
     }
 
@@ -153,4 +158,4 @@ export async function POST() {
       }]
     }, { status: 500 });
   }
-} 
+}
