@@ -19,11 +19,11 @@ interface TestSuite {
 }
 
 // Function to sanitize strings and remove NULL bytes
-function sanitizeString(str: string): string {
+function sanitizeString(str: string | null | undefined): string {
   if (str == null) return '';
-  return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  // Remove all null bytes (\u0000)
+  return str.replace(/\u0000/g, '');
 }
-
 
 export async function GET() {
   try {
@@ -38,11 +38,11 @@ export async function GET() {
         const files = entries
           .filter(file => !file.isDirectory() && (file.name.endsWith('.spec.ts') || file.name.endsWith('.test.ts')))
           .map(file => path.join(dir, file.name));
-        
+
         const folders = entries
           .filter(entry => entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules')
           .map(entry => path.join(dir, entry.name));
-        
+
         const subFiles = folders.flatMap(folder => findTestFiles(folder));
         return [...files, ...subFiles];
       } catch (error) {
@@ -63,7 +63,7 @@ export async function GET() {
         console.error(`Error reading file ${filePath}:`, error);
         content = '';
       }
-      
+
       // Parse individual tests from the file content and sanitize the data
       const testMatches = Array.from(content.matchAll(/test\(['"](.*?)['"]/g));
       const tests = testMatches.map((match, testIndex) => ({
