@@ -20,9 +20,10 @@ interface TestSuite {
 
 // Function to sanitize strings and remove NULL bytes
 function sanitizeString(str: string): string {
-  if (!str) return '';
-  return str.replace(/\u0000/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+  if (str == null) return '';
+  return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
 }
+
 
 export async function GET() {
   try {
