@@ -13,8 +13,15 @@ interface TestResult {
   browserName?: string;
 }
 
+function sanitizeString(str: string): string {
+  // Remove null characters and invalid Unicode sequences
+  return str.replace(/\u0000/g, '').replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, '');
+}
+
 function parseTestResults(output: string): { passed: boolean; results: TestResult[] } {
-  const lines = output.split('\n');
+  // Sanitize the output first
+  const sanitizedOutput = sanitizeString(output);
+  const lines = sanitizedOutput.split('\n');
   const results: TestResult[] = [];
   let passed = false;
   let currentError = '';
@@ -32,9 +39,9 @@ function parseTestResults(output: string): { passed: boolean; results: TestResul
   // If we have any test-related output, process it
   if (hasTestOutput) {
     // Check if all tests passed
-    passed = !output.toLowerCase().includes('failed') && 
-             !output.toLowerCase().includes('error') &&
-             !output.toLowerCase().includes('timeout');
+    passed = !sanitizedOutput.toLowerCase().includes('failed') && 
+             !sanitizedOutput.toLowerCase().includes('error') &&
+             !sanitizedOutput.toLowerCase().includes('timeout');
 
     // Try to extract individual test results
     for (const line of lines) {
@@ -123,9 +130,13 @@ export async function POST(request: Request) {
       // Read the test file to get the test name for grep
       const fileContent = await fs.readFile(file, 'utf-8');
       console.log('File content:', fileContent);
+
+      // Sanitize the file path and content
+      const sanitizedFile = sanitizeString(file);
+      const sanitizedContent = sanitizeString(fileContent);
       
       // Match test declarations more precisely
-      const tests = Array.from(fileContent.matchAll(/test\s*\(\s*["']([^"']+)["']/g));
+      const tests = Array.from(sanitizedContent.matchAll(/test\s*\(\s*["']([^"']+)["']/g));
       console.log('Found tests:', tests.map(t => t[1]));
       
       if (!tests[index]) {
@@ -194,12 +205,21 @@ export async function POST(request: Request) {
         // Parse test results from output
         const { passed, results } = parseTestResults(output);
         
+        // Sanitize all string fields in the response
+        const sanitizedResults = results.map(result => ({
+          ...result,
+          file: sanitizeString(result.file),
+          testName: sanitizeString(result.testName),
+          error: result.error ? sanitizeString(result.error) : undefined,
+          duration: sanitizeString(result.duration)
+        }));
+        
         return NextResponse.json({
           status: passed ? 'passed' : 'failed',
           message: passed ? 'Test executed successfully' : 'Test failed',
-          error: stderr || '',
-          output: output,
-          testResults: results
+          error: stderr ? sanitizeString(stderr) : '',
+          output: sanitizeString(output),
+          testResults: sanitizedResults
         });
         
       } catch (execError: any) {
