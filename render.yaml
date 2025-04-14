@@ -5,11 +5,12 @@ services:
     buildCommand: |
       npm install
       npm run build
-      npx playwright install --with-deps chromium
-      npx playwright install-deps
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npx playwright install chromium
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD
+        value: "1"
     healthCheckPath: /
     autoDeploy: true 

@@ -8,7 +8,7 @@
     "start": "next start -p $PORT",
     "lint": "next lint",
     "test": "playwright test",
-    "postinstall": "npx playwright install --with-deps chromium && npx playwright install-deps"
+    "postinstall": "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npx playwright install chromium"
   },
   "dependencies": {
     "@playwright/test": "^1.51.1",
