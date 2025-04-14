@@ -117,13 +117,16 @@ function parseTestResults(output: string): { passed: boolean; results: TestResul
 export async function POST(request: Request) {
   try {
     const { file, index } = await request.json();
-    const filename = path.basename(file);
-    console.log('Running individual test from file:', filename);
+    console.log('Running test from file:', file);
     
     try {
       // Read the test file to get the test name for grep
-      const fileContent = await fs.readFile(`tests/${filename}`, 'utf-8');
-      const tests = fileContent.match(/test\(['"](.*?)['"]/g) || [];
+      const fileContent = await fs.readFile(file, 'utf-8');
+      console.log('File content:', fileContent);
+      
+      // Match test declarations more precisely
+      const tests = Array.from(fileContent.matchAll(/test\s*\(\s*["']([^"']+)["']/g));
+      console.log('Found tests:', tests.map(t => t[1]));
       
       if (!tests[index]) {
         return NextResponse.json({
@@ -132,7 +135,7 @@ export async function POST(request: Request) {
           error: `No test found at index ${index}`,
           output: '',
           testResults: [{
-            file: filename,
+            file: file,
             testName: 'Test Not Found',
             status: 'failed',
             duration: '0ms'
@@ -140,17 +143,34 @@ export async function POST(request: Request) {
         });
       }
       
-      // Extract the test name from the match
-      const testNameMatch = tests[index].match(/test\(['"](.*)['"]/)!;
-      const testName = testNameMatch[1];
+      // Extract the test name and escape special characters
+      const testName = tests[index][1];
       console.log('Found test name:', testName);
+      
+      // Escape special characters in the test name for the grep pattern
+      const escapedTestName = testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      console.log('Escaped test name for grep:', escapedTestName);
 
       try {
-        // Run test using just the test name with --grep and --reporter=list for better output
-        const command = `npx playwright test --grep "${testName}" --reporter=list`;
-        console.log('Executing command:', command);
+        // Use tests directory as working directory
+        const testsDir = path.join(process.cwd(), 'tests');
+        const options = {
+          cwd: testsDir,
+          env: { ...process.env },
+          maxBuffer: 1024 * 1024 * 100 // 10MB buffer
+        };
+
+        // Get just the filename without the tests/ prefix
+        const filename = path.basename(file);
         
-        const { stdout, stderr } = await execPromise(command);
+        // Construct command with simpler grep pattern
+        const command = `npx playwright test "${filename}" --grep="${testName}"`;
+        
+        console.log('Working directory:', options.cwd);
+        console.log('Full command:', command);
+        console.log('Test name being searched:', testName);
+
+        const { stdout, stderr } = await execPromise(command, options);
         const output = stdout || stderr;
         console.log('Test execution output:', output);
         
@@ -162,7 +182,7 @@ export async function POST(request: Request) {
             error: output,
             output: output,
             testResults: [{
-              file: filename,
+              file: file,
               testName: testName,
               status: 'failed',
               duration: '0ms',
@@ -201,7 +221,7 @@ export async function POST(request: Request) {
           error: errorOutput || execError.message,
           output: output || errorOutput,
           testResults: results.length > 0 ? results : [{
-            file: filename,
+            file: file,
             testName: testName,
             status: 'failed',
             duration: '0ms',
@@ -220,7 +240,7 @@ export async function POST(request: Request) {
         error: errorMessage,
         output: '',
         testResults: [{
-          file: filename,
+          file: file,
           testName: 'Test Execution',
           status: 'failed',
           duration: '0ms',

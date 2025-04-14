@@ -69,13 +69,26 @@ function parseTestResults(output: string): { passed: boolean; results: TestResul
 export async function POST() {
   try {
     console.log('Running all tests in the project');
+    console.log('Current working directory:', process.cwd());
+    console.log('Environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      PATH: process.env.PATH
+    });
 
     try {
       // Run all tests using list reporter for better output
       const command = 'npx playwright test --reporter=list';
       console.log('Executing command:', command);
+      
+      const options = {
+        cwd: process.cwd(),
+        env: { ...process.env },
+        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      };
 
-      const { stdout, stderr } = await execPromise(command);
+      console.log('Working directory:', options.cwd);
+      
+      const { stdout, stderr } = await execPromise(command, options);
       const output = stdout || stderr;
       console.log('Test execution output:', output);
 
@@ -105,6 +118,12 @@ export async function POST() {
         error: stderr || '',
         output: output,
         testResults: results
+      }, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store'
+        }
       });
 
     } catch (execError: any) {
@@ -112,9 +131,14 @@ export async function POST() {
       const output = execError.stdout || '';
       const errorOutput = execError.stderr || '';
       
-      console.log('Test execution failed:', {
+      console.error('Test execution failed:', {
+        error: execError,
+        code: execError.code,
+        signal: execError.signal,
         stdout: output,
-        stderr: errorOutput
+        stderr: errorOutput,
+        cmd: execError.cmd,
+        killed: execError.killed
       });
       
       // Try to parse results even from failed execution

@@ -137,7 +137,7 @@ export default function Interface() {
       setError(null);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 500000);
 
       const response = await fetch('/api/list-tests', {
         signal: controller.signal
@@ -210,7 +210,7 @@ export default function Interface() {
 
       // Set up timeout for the fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 35000);
+      const timeoutId = setTimeout(() => controller.abort(), 3500000);
 
       try {
         const response = await fetch('/api/run-test', {
@@ -388,7 +388,7 @@ export default function Interface() {
 
       // Set up timeout for the fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 35000);
+      const timeoutId = setTimeout(() => controller.abort(), 650000);
 
       try {
         const response = await fetch('/api/run-all-tests', {
@@ -537,16 +537,13 @@ export default function Interface() {
         }))
       })));
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 35000);
-
       try {
         const response = await fetch('/api/run-all-project-tests', {
           method: 'POST',
-          signal: controller.signal
+          headers: {
+            'Content-Type': 'application/json'
+          }
         });
-
-        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error('Failed to run tests');
