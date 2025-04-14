@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: playwright-dashboard
+    env: node
+    buildCommand: |
+      npm install
+      npm run build
+      npx playwright install --with-deps chromium
+      npx playwright install-deps
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /
+    autoDeploy: true 
