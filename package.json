@@ -4,14 +4,14 @@
   "private": true,
   "scripts": {
   "dev": "next dev",
-  "build": "next build",
+  "build": "npx playwright install --with-deps && next build",
   "start": "next start -p $PORT",
   "lint": "next lint",
+  "pretest": "npx playwright install --with-deps",
   "test": "playwright test",
-  "postinstall": "npx playwright install"
+  "postinstall": "npx playwright install --with-deps"
+},
 
-
-  },
   "dependencies": {
     "@playwright/test": "^1.51.1",
     "lucide-react": "^0.344.0",
