@@ -769,8 +769,8 @@ export default function Interface() {
         <div className="flex flex-col gap-6 mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-blue-600">Test Runner Interface</h1>
-              <p className="text-gray-600 mt-2">Manage and run your Playwright tests</p>
+              <h1 className="text-3xl font-bold text-blue-600">Test Runner Interface_Magic</h1>
+              <p className="text-gray-600 mt-2">Run your tests with ease with this interface from Magic</p>
             </div>
             <div className="flex gap-4">
               <button
