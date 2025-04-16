@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
   "dev": "next dev",
-  "build": "npx playwright install --with-deps && next build",
+  "build": "npx playwright install && next build",
   "start": "next start -p $PORT",
   "lint": "next lint",
-  "pretest": "npx playwright install --with-deps",
+  "pretest": "npx playwright install",
   "test": "playwright test",
-  "postinstall": "npx playwright install --with-deps"
+  "postinstall": "npx playwright install"
 },
 
   "dependencies": {
